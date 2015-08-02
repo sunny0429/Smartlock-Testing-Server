@@ -39,7 +39,7 @@ def add_raspkey():
 	Raspkey = request.json['Raspkey']
 	con = sql.connect("SmartlockUser.db")
 	cur = con.cursor()
-	cur.excute("INSERT INTO Raspkey(KEY) VALUES (?)",(Raspkey))
+	cur.execute("INSERT INTO Raspkey(KEY) VALUES (?)",(Raspkey,))
 	con.commit()
 	con.close()
 	return make_response(jsonify({'success': 'success'}), 200)
@@ -47,13 +47,15 @@ def add_raspkey():
 #post the request to rasp to lock or unlock	
 @app.route('/smartlock/action', methods=['POST'])	
 def call_rasp():
-	Action = request.json('keyword')
+	Action = request.json['keyword']
+	con = sql.connect("SmartlockUser.db")
+	cur = con.cursor()
 	cur.execute('SELECT IP FROM Raspip')
-	url = cur.fetchall()[0]
-	if url != null:
+	url = cur.fetchall()[0]#if no ip present then this goes out of range if else won't be executed
+	if url != '':
 		headers = {'content-type': 'application/json'}
 		r = requests.post(url, data=json.dumps(Action), headers=headers)
-	# report user to reset rasp
+		#report user to reset rasp
 	else:
 		con = sql.connect("SmartlockUser.db")
 		cur = con.cursor()
@@ -71,15 +73,15 @@ def call_rasp():
 		
 		
 #raspberry pie sends key and matches with key registered by the user from app, then saves it else report to the user		
-@app.route('/smartlock/raspkey', methods=['POST'])		
+@app.route('/smartlock/key', methods=['POST'])		
 def rasp():
-	Key = request.json('key')
+	Key = request.json['key']
 	con = sql.connect("SmartlockUser.db")
 	cur = con.cursor()
 	cur.execute('SELECT KEY FROM Raspkey')
 	raspkey = cur.fetchall()[0]
 	if Key == raspkey:
-		cur.execute("INSERT INTO Raspkey(KEY) VALUES(?)",(Key))
+		cur.execute("INSERT INTO Raspkey(KEY) VALUES(?)",(Key,))
 	else:
 		alert = {'message':'Rasp key does not match, Kindly Re-enter your key'}
 		cur.execute('SELECT Regiskey FROM SmartlockUser')
@@ -96,10 +98,10 @@ def rasp():
 #raspberry pie updates the ip address of its network(if changes)
 @app.route('/smartlock/IP', methods=['PUT'])
 def rasp_ip():
-	IP = request.json('ip')
+	IP = request.json['ip']
 	con = sql.connect("SmartlockUser.db")
 	cur = con.cursor()
-	cur.execute("INSERT INTO Raspip (IP) VALUES (?)", (IP))
+	cur.execute("INSERT INTO Raspip (IP) VALUES (?)", (IP,))
 	con.commit
 	con.close
 	return make_response(jsonify({'success': 'success'}), 200)
@@ -108,7 +110,7 @@ def rasp_ip():
 #raspberry sends the changed status of the lock, message given to user	
 @app.route('/smartlock/message', methods=['POST'])
 def message():
-	message = request.json('message')
+	message = request.json['message']
 	con = sql.connect("SmartlockUser.db")
 	cur = con.cursor()
 	cur.execute('SELECT Regiskey FROM SmartlockUser')
